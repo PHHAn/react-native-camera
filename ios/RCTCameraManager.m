@@ -378,7 +378,9 @@ RCT_EXPORT_METHOD(saveToDevice:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
     if (self.imageData) {
         [self saveImage:self.imageData target:RCTCameraCaptureTargetCameraRoll metadata:nil resolve:resolve reject:reject];
+        [self deleteTempImage];
     }
+    
 }
 
 RCT_EXPORT_METHOD(stopCapture) {
@@ -658,7 +660,7 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
             if (target == RCTCameraCaptureTargetTemp) {
                 self.isWaitToSave = [[options valueForKey:@"isWaitToSave"] boolValue];
                 if (self.isWaitToSave) {
-                    self.imageData = imageData;
+                    self.imageData = rotatedImageData;
                 }
             }
           [self saveImage:rotatedImageData target:target metadata:imageMetadata resolve:resolve reject:reject];
@@ -714,6 +716,23 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
     return;
   }
   resolve(@{@"path":responseString});
+}
+
+- (void)deleteTempImage
+{
+    NSString *tempPath = NSTemporaryDirectory();
+    NSArray *dirContents = [[NSFileManager defaultManager] directoryContentsAtPath:tempPath];
+    NSArray *onlyIMGs = [dirContents filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"self ENDSWITH '.jpg','.jpeg','.png'"]];
+    
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    
+    if (onlyIMGs) {
+        for (int i = 0; i < [onlyJPGs count]; i++) {
+            NSLog(@"Directory Count: %i", [onlyIMGs count]);
+            NSString *contentsOnly = [NSString stringWithFormat:@"%@%@", tempPath, [onlyIMGs objectAtIndex:i]];
+            [fileManager removeItemAtPath:contentsOnly error:nil];
+        }
+    }
 }
 
 - (CGImageRef)newCGImageRotatedByAngle:(CGImageRef)imgRef angle:(CGFloat)angle
