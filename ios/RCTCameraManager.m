@@ -374,6 +374,13 @@ RCT_EXPORT_METHOD(capture:(NSDictionary *)options
   }
 }
 
+RCT_EXPORT_METHOD(saveToDevice:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    if (self.imageData) {
+        [self saveImage:self.imageData target:RCTCameraCaptureTargetCameraRoll metadata:nil resolve:resolve reject:reject];
+    }
+}
+
 RCT_EXPORT_METHOD(stopCapture) {
   if (self.movieFileOutput.recording) {
     [self.movieFileOutput stopRecording];
@@ -580,6 +587,13 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
       UIGraphicsEndImageContext();
 
       NSData *imageData = UIImageJPEGRepresentation(image, 1.0);
+      
+      if (target == RCTCameraCaptureTargetTemp) {
+          self.isWaitToSave = [[options valueForKey:@"isWaitToSave"] boolValue];
+          if (self.isWaitToSave) {
+              self.imageData = imageData;
+          }
+      }
       [self saveImage:imageData target:target metadata:nil resolve:resolve reject:reject];
 #else
       [[self.stillImageOutput connectionWithMediaType:AVMediaTypeVideo] setVideoOrientation:orientation];
@@ -641,7 +655,12 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
           // And write
           CGImageDestinationFinalize(destination);
           CFRelease(destination);
-
+            if (target == RCTCameraCaptureTargetTemp) {
+                self.isWaitToSave = [[options valueForKey:@"isWaitToSave"] boolValue];
+                if (self.isWaitToSave) {
+                    self.imageData = imageData;
+                }
+            }
           [self saveImage:rotatedImageData target:target metadata:imageMetadata resolve:resolve reject:reject];
 
           CGImageRelease(rotatedCGImage);
